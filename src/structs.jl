@@ -1,4 +1,3 @@
-
 mutable struct SurrealDBConnection
     url::String
     user::String
