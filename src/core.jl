@@ -1,15 +1,6 @@
 using HTTP, JSON3, DataFrames, Base64
 include("structs.jl")
 
-url = "https://localhost:8080"
-user = "root"
-pw = "root"
-db = "test"
-namespace = "test"
-
-conn = SurrealDBConnection(user,pw,database=db,namespace = namespace)
-query = """SELECT * FROM person"""
-
 
 function execute(conn::SurrealDBConnection,query::String)
     ep = string(conn.url,"/sql")
@@ -36,11 +27,3 @@ function todf(result::JSON3.Array)
         "something went wrong"
     end
 end
-
-execute(conn,query)
-
-query = """
-CREATE person SET name = "Nick";
-CREATE person SET name = "Cassie", role = "bad ass";"""
-
-execute(conn,"select * from person;") |> todf
