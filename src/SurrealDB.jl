@@ -1,5 +1,11 @@
 module SurrealDB
 
-# Write your package code here.
+include("structs.jl")
+include("core.jl")
+
+export 
+    SurrealDBConnection,
+    execute,
+    todf
 
 end
