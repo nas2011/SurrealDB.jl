@@ -1,2 +1,4 @@
 /Manifest.toml
 /db
+/src/test.jl
+/tableGenScripts
