@@ -1,6 +1,6 @@
 # SurrealDB
 
-## A Basic Client Library for Working With SurrealDB in Julia
+## A Basic Client for Working With SurrealDB in Julia
 
 This is a basic client library. It allows you to define a SurrealDB connection to a running
 instance of SurrealDB and execute SurrealQL statements on that instance using the SurrealDB
