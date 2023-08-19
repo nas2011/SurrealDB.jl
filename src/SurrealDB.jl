@@ -10,5 +10,6 @@ export
     select,
     query,
     execute,
-    todf
+    todf,
+    rawws
 end
