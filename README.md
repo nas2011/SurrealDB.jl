@@ -91,6 +91,8 @@ julia> query(wsconn,"select * from person limit 2") |> JSON3.pretty
         }
     ]
 }
+
+julia> close(wsconn.ws)
 ```
 
 Example HTTP usage:
