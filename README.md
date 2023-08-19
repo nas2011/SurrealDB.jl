@@ -99,8 +99,8 @@ Example HTTP usage:
 
 ```julia
 
-julia> conn = SurrealDBConnection("root","root",database = "test", namespace = "test")
-SurrealDBConnection("http://localhost:8000", "root", "root", "test", "test")
+julia> conn = julia> SurrealConnection("http://localhost:8000", "root", "root",ns = "test",db = "test")
+SurrealConnection("http://localhost:8000", "root", "root", "test", "test", "HTTP", false, nothing)
 
 julia> query = "select * from person"
 "select * from person"
