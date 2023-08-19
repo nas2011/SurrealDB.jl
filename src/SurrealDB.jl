@@ -4,8 +4,11 @@ include("structs.jl")
 include("core.jl")
 
 export 
-    SurrealDBConnection,
+    SurrealConnection,
+    signin,
+    use,
+    select,
+    query,
     execute,
     todf
-
 end

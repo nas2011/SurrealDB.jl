@@ -6,8 +6,6 @@ end
 
 
 
-wsc = SurrealConnection("ws://localhost:8000/rpc","root","root",db = "test", ns = "test")
-htc = SurrealConnection("http://localhost:8000","root","root", db = "test", ns = "test")
 
 
 function signin(conn::SurrealConnection;root::Bool=true,sc::Union{Nothing,String}=nothing)
@@ -35,7 +33,6 @@ function signin(conn::SurrealConnection;root::Bool=true,sc::Union{Nothing,String
     receive(conn.ws)
 end
    
-signin(wsc)
 
 function use(conn::SurrealConnection)
     id = conn.ws.id |> string
@@ -48,7 +45,7 @@ function use(conn::SurrealConnection)
     receive(conn.ws)
 end
 
-use(wsc)
+
 
 function select(conn::SurrealConnection,param::String)
     id = conn.ws.id |> string
@@ -63,7 +60,6 @@ function select(conn::SurrealConnection,param::String)
     receive(conn.ws)
 end
 
-select(wsc,"person") |> JSON3.pretty
 
 function varstring(vars::Dict{String,String})
     join(["\"$k\" : \"$v\"" for (k,v) in pairs(vars)], ",\n")
@@ -98,7 +94,7 @@ function execute(conn::SurrealConnection,query::String)
     HTTP.request("POST",ep,headers = header, body=query).body |> String |> JSON3.read
 end
 
-df = execute(htc,q) |> todf
+
 
 function todf(result::JSON3.Array)
     if result[1].result == []
