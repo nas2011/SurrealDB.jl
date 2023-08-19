@@ -4,7 +4,7 @@ begin
     include("structs.jl")
 end
 
-
+signin(wsconn) |> JSON3.pretty
 
 
 
@@ -65,7 +65,7 @@ function varstring(vars::Dict{String,String})
     join(["\"$k\" : \"$v\"" for (k,v) in pairs(vars)], ",\n")
 end
 
-function query(conn::SurrealWSConnection,query::String,vars::Dict{String,String}=Dict{String,String}())
+function query(conn::SurrealConnection,query::String,vars::Dict{String,String}=Dict{String,String}())
     id = conn.ws.id |> string
     varstr = varstring(vars)
     body = """{
@@ -102,6 +102,19 @@ function todf(result::JSON3.Array)
     end
     try
         mapreduce((x,y)->vcat(x,y,cols=:union),result[1].result) do x
+            DataFrame(x)
+        end
+    catch
+        "something went wrong"
+    end
+end
+
+function todf(result::JSON3.Object)
+    if result.result[1].result == []
+        return DataFrame()
+    end
+    try
+        mapreduce((x,y)->vcat(x,y,cols=:union),result.result[1].result) do x
             DataFrame(x)
         end
     catch
