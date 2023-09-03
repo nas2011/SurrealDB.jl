@@ -4,84 +4,107 @@ begin
     include("structs.jl")
 end
 
-signin(wsconn) |> JSON3.pretty
+function varstring(vars::Dict{String,String})
+    join(["\"$k\" : \"$v\"" for (k,v) in pairs(vars)], ",\n")
+end
 
+function sendreceive(conn::SurrealConnection,message::String)
+    send(conn.ws,message)
+    t = @async receive(conn.ws) |> JSON3.read
+    fetch(t)
+end
 
-
-function signin(conn::SurrealConnection;root::Bool=true,sc::Union{Nothing,String}=nothing)
-    additional = ""
-    if !root
-        scope = isnothing(sc) ? "" : "\"SC\": \"$sc\""
-        ns = "\"NS\" : \"$(conn.ns)\","
-        db = "\"DB\" : \"$(conn.db)\","
-        additional = ns * db * scope
-    end    
+function buildMessage(conn::SurrealConnection,method::String;vecParams::Vector{String}=String[],objParams::Dict{String,String}=Dict{String,String}())
     id = conn.ws.id |> string
-    body = """{
+    vecParamString = length(vecParams) > 0 ?
+        join(["\"$i\"" for i in vecParams], ",") * "," :
+         ""
+    objParamString =  length(objParams) >0 ?
+        "{" * varstring(objParams) * "}" :
+        ""
+    """{
         "id": "$id",
-        "method": "signin",
-        "params": [
-            {
-                "user": "$(conn.user)",
-                "pass": "$(conn.pass)",
-                $additional
-            }
-        ]
+        "method": "$method",
+        "params": [ 
+            $vecParamString
+            $objParamString
+         ]
     }"""
+end
 
-    send(conn.ws,body)
-    receive(conn.ws)
+
+function signin(conn::SurrealConnection;root::Bool = true, sc::Union{String,Nothing}=nothing)
+    if root
+        paramDict = Dict(
+            "user" => conn.user,
+            "pass" => conn.pass,
+        )
+    else
+        paramDict = Dict(
+            "NS" => conn.ns,
+            "DB" => conn.db,
+            "user" => conn.user,
+            "pass" => conn.pass,
+        )
+    end
+    if !isnothing(sc) paramDict["SC"] = sc end
+    message = buildMessage(conn,"signin";objParams = paramDict)
+    sendreceive(conn,message)
 end
    
 
 function use(conn::SurrealConnection)
-    id = conn.ws.id |> string
-    use = """{
-        "id": "$id",
-        "method": "use",
-        "params": [ "$(conn.ns)", "$(conn.db)" ]
-    }"""
-    send(conn.ws,use)
-    receive(conn.ws)
+    message = buildMessage(conn,"use",vecParams = [conn.ns,conn.db])
+    sendreceive(conn,message)
 end
 
 
 
 function select(conn::SurrealConnection,param::String)
-    id = conn.ws.id |> string
-    body = """{
-        "id": "$id",
-        "method": "select",
-        "params": [
-           "$param"
-        ]
-    }"""
-    send(conn.ws,body)
-    receive(conn.ws)
+    message = buildMessage(conn,"select",vecParams = [param])
+    sendreceive(conn,message)
 end
 
 
-function varstring(vars::Dict{String,String})
-    join(["\"$k\" : \"$v\"" for (k,v) in pairs(vars)], ",\n")
-end
+
 
 function query(conn::SurrealConnection,query::String,vars::Dict{String,String}=Dict{String,String}())
-    id = conn.ws.id |> string
-    varstr = varstring(vars)
-    body = """{
-        "id": "$id",
-        "method": "query",
-        "params": [
-            "$query",
-            {
-                $varstr
-            }
-        ]
-    }"""
-    send(conn.ws,body)
-    receive(conn.ws)
+    message = buildMessage(conn,"query",vecParams = [query], objParams = vars)
+    sendreceive(conn,message)
 end
 
+function info(conn::SurrealConnection)
+    message = buildMessage(conn,"info")
+    sendreceive(conn,message)
+end
+
+function signup(conn::SurrealConnection,sc::String)
+    paramDict = Dict(
+            "NS" => conn.ns,
+            "DB" => conn.db,
+            "user" => conn.user,
+            "pass" => conn.pass,
+            "SC" => sc,
+        )
+    message = buildMessage(conn,"signup",objParams=paramDict)
+    sendreceive(conn,message)
+end
+
+
+function authenticate(conn::SurrealConnection,token::String)
+    message = buildMessage(conn,"authenticate",vecParams = [token])
+    sendreceive(conn,message)
+end
+
+function invalidate(conn::SurrealConnection)
+    message = buildMessage(conn,"invalidate")
+    sendreceive(conn,message)
+end
+
+function insert(conn::SurrealConnection,thing::String;data::Dict{String,String}=Dict())
+    message = buildMessage(conn,"insert",vecParams=[thing],objParams=data)
+    sendreceive(conn,message)
+end
 
 function execute(conn::SurrealConnection,query::String)
     ep = string(conn.url,"/sql")
@@ -92,32 +115,4 @@ function execute(conn::SurrealConnection,query::String)
         "DB" => conn.db,
     ]
     HTTP.request("POST",ep,headers = header, body=query).body |> String |> JSON3.read
-end
-
-
-
-function todf(result::JSON3.Array)
-    if result[1].result == []
-        return DataFrame()
-    end
-    try
-        mapreduce((x,y)->vcat(x,y,cols=:union),result[1].result) do x
-            DataFrame(x)
-        end
-    catch
-        "something went wrong"
-    end
-end
-
-function todf(result::JSON3.Object)
-    if result.result[1].result == []
-        return DataFrame()
-    end
-    try
-        mapreduce((x,y)->vcat(x,y,cols=:union),result.result[1].result) do x
-            DataFrame(x)
-        end
-    catch
-        "something went wrong"
-    end
 end

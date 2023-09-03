@@ -18,9 +18,16 @@ end
     pass::String = "root"
     ns::String = ""
     db::String = ""
-    type::String
+    type::String = ""
     connected::Bool = false
-    ws::Union{HTTP.WebSockets.WebSocket,Nothing}
+    ws::Union{HTTP.WebSockets.WebSocket,Nothing}=nothing
+    SurrealConnection(url,user,pass,ns,db,type,connected,ws)= (
+        x = new(url,user,pass,ns,db,type,connected,ws);
+        x.ws = occursin("ws:", x.url) ? rawws(x.url) : nothing;
+        x.type = occursin("ws:", x.url) ? "websocket" : "HTTP";
+        x.connected = x.type == "websocket" ? HTTP.isopen(x.ws.io) : false;
+        return x
+    )
     SurrealConnection(url, user, pass; ns="", db="") = (
         x = new(url, user, pass, ns, db);
         x.ws = occursin("ws:", x.url) ? rawws(x.url) : nothing;
