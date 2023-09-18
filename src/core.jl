@@ -116,3 +116,44 @@ function execute(conn::SurrealConnection,query::String)
     ]
     HTTP.request("POST",ep,headers = header, body=query).body |> String |> JSON3.read
 end
+
+function define(index::Index)
+    """DEFINE INDEX $(index.name) ON TABLE $(index.table.name) COLUMNS $(index.columns.name) $(index.type);"""
+end
+
+function define(fields::Vector{Field})
+    mapreduce(*,fields) do x
+        assertVal = x.assertion == "" ? "" : "ASSERT $(x.assertion)"
+        valString = x.value == "" ? "" : "VALUE $(x.value)"
+        defaultString = x.defaultVal == "" ? "DEFAULT NONE" : "DEFAULT $(x.defaultVal)"
+        flexVal = occursin("object",x.type) ? "FLEXIBLE" : ""
+        """DEFINE FIELD $(x.name) ON TABLE %%FUTURETABLE%% $flexVal TYPE $(x.type)\n
+        \t$defaultString
+        \t$assertVal\n
+        \t$valString;\n
+        """
+    end
+end
+
+function define(permissions::Vector{Permission})
+    perms = mapreduce(*,permissions) do x
+        """\t FOR $(x.type)\n
+            \t\t $(x.rule)
+        """
+    end
+
+    return "PERMISSIONS\n $perms"
+end
+
+
+
+function define(table::Table)
+    fieldTemplate = define(table.fields)
+    fields = replace(fieldTemplate,"%%FUTURETABLE%%"=>(table.name))
+    permissions = define(table.permissions)
+    """
+    DEFINE TABLE $(table.name) $(table.type)\n 
+    \t$permissions;
+    $fields    
+    """
+end
