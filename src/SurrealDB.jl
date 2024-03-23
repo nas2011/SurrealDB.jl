@@ -1,5 +1,7 @@
 module SurrealDB
 
+using HTTP, JSON3
+
 include("structs.jl")
 include("core.jl")
 
