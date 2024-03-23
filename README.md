@@ -4,8 +4,7 @@
 
 This is a basic client library. It allows you to define a SurrealDB connection to a running
 instance of SurrealDB and execute SurrealQL statements on that instance using the SurrealDB
-REST API or websocket text protocol. This package also provides a convenience function `todf` to convert results of
-executed queries to a `DataFrame` for further use.
+REST API or websocket text protocol. 
 
 I intend to build this out with more full fledged features over time.
 
@@ -122,12 +121,4 @@ julia> execute(conn,query)
                }
              ]
 }
-
-julia> ans |> todf
-2×3 DataFrame
- Row │ id                           name    role
-     │ String                       String  String?
-─────┼──────────────────────────────────────────────
-   1 │ person:4ue7j2d0g43otmsq4ilc  Cassie  bad ass
-   2 │ person:77m8a8pwognplrhwzj7e  Nick    missing
 ```
