@@ -4,6 +4,8 @@ begin
     include("structs.jl")
 end
 
+
+
 function varstring(vars::Dict{String,String})
     join(["\"$k\" : \"$v\"" for (k,v) in pairs(vars)], ",\n")
 end
