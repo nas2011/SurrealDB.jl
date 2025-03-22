@@ -4,6 +4,7 @@ function rawws(url,headers =[])
         "Connection" => "Upgrade",
         "Sec-WebSocket-Key" => base64encode(rand(Random.RandomDevice(), UInt8, 16)),
         "Sec-WebSocket-Version" => "13",
+        "Sec-Websocket-Protocol" => "rpc",
         headers...
     ]
     r = HTTP.openraw("GET",url,headers)[1]
