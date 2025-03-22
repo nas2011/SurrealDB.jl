@@ -1,8 +1,6 @@
 begin
     using HTTP, JSON3, DataFrames, Base64, UUIDs, Random
     using HTTP.WebSockets: send, receive
-    include("structs.jl")
-    include("core.jl")
 end
 
 

@@ -1,9 +1,7 @@
 begin
     using HTTP, JSON3, DataFrames, Base64, UUIDs, Random
     using HTTP.WebSockets: send, receive
-    include("structs.jl")
 end
-
 
 
 function varstring(vars::Dict{String,String})
@@ -35,16 +33,6 @@ function buildMessage(conn::SurrealConnection,method::String;vecParams::Vector{S
 end
 
 
-function execute(conn::SurrealConnection,query::String)
-    ep = string(conn.url,"/sql")
-    header = [
-        "Authorization" => string("Basic ", base64encode("$(conn.user):$(conn.pass)")),
-        "Accept" => "application/json",
-        "NS" => conn.ns,
-        "DB" => conn.db,
-    ]
-    HTTP.request("POST",ep,headers = header, body=query).body |> String |> JSON3.read
-end
 
 function define(index::Index)
     """DEFINE INDEX $(index.name) ON TABLE $(index.table.name) COLUMNS $(index.columns.name) $(index.type);"""
