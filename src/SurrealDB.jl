@@ -1,7 +1,7 @@
 module SurrealDB
 
 begin
-    using HTTP, JSON3, DataFrames, Base64, UUIDs, Random
+    using HTTP, JSON3, DataFrames, Base64, UUIDs, Random, TOML
     using HTTP.WebSockets: send, receive
 end
 
@@ -9,6 +9,8 @@ end
 include("structs.jl")
 include("core.jl")
 include("websockets.jl")
+include("downloader.jl")
+include("startSurreal.jl")
 
 function rawws(url,headers =[])
     headers = [
@@ -25,6 +27,9 @@ function rawws(url,headers =[])
     return ws
 end
 
+global surrealExeLoc = joinpath(pwd(),"surreal","surreal")
+global config = TOML.parsefile("config.toml")
+
 export 
     SurrealConnection,
     signin,
@@ -32,5 +37,12 @@ export
     select,
     query,
     execute,
-    rawws
+    rawws,
+    #downloader
+    getSurreal,
+    #Start
+    startSurreal,
+    closeSurreal
 end
+
+
