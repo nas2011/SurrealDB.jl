@@ -4,7 +4,7 @@
 
 This is a basic client library. It allows you to define a SurrealDB connection to a running
 instance of SurrealDB and execute SurrealQL statements on that instance using the SurrealDB
-REST API or websocket text protocol. 
+websocket rpc protocol. 
 
 I intend to build this out with more full fledged features over time.
 
