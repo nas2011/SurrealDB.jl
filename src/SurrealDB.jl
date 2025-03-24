@@ -1,7 +1,7 @@
 module SurrealDB
 
 begin
-    using HTTP, JSON3, DataFrames, Base64, UUIDs, Random, TOML
+    using HTTP, JSON3, DataFrames, Base64, UUIDs, Random, TOML, DBInterface, JSONTables
     using HTTP.WebSockets: send, receive
 end
 
@@ -36,8 +36,8 @@ export
     use,
     select,
     query,
-    execute,
     rawws,
+    DBInterface,
     #downloader
     getSurreal,
     #Start

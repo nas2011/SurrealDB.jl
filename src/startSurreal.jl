@@ -1,8 +1,8 @@
-struct SurrealDB
-    path::String
-    config::Dict
-    SurrealDB() = new("memory",global config)
-end
+# struct SurrealDB
+#     path::String
+#     config::Dict
+#     SurrealDB() = new("memory",config)
+# end
 
 
 function buildEnv(config::Dict)

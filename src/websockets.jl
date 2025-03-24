@@ -1,5 +1,5 @@
 begin
-    using HTTP, JSON3, DataFrames, Base64, UUIDs, Random
+    using HTTP, JSON3, DataFrames, Base64, UUIDs, Random, DBInterface
     using HTTP.WebSockets: send, receive
 end
 
@@ -38,11 +38,11 @@ end
 
 
 
-
 function query(conn::SurrealConnection,query::String,vars::Dict{String,String}=Dict{String,String}())
     message = buildMessage(conn,"query",vecParams = [query], objParams = vars)
     sendreceive(conn,message)
 end
+
 
 function info(conn::SurrealConnection)
     message = buildMessage(conn,"info")
@@ -77,13 +77,13 @@ function insert(conn::SurrealConnection,thing::String;data::Dict{String,String}=
     sendreceive(conn,message)
 end
 
-function execute(conn::SurrealConnection,query::String)
-    ep = string(conn.url,"/sql")
-    header = [
-        "Authorization" => string("Basic ", base64encode("$(conn.user):$(conn.pass)")),
-        "Accept" => "application/json",
-        "NS" => conn.ns,
-        "DB" => conn.db,
-    ]
-    HTTP.request("POST",ep,headers = header, body=query).body |> String |> JSON3.read
-end
+# function execute(conn::SurrealConnection,query::String)
+#     ep = string(conn.url,"/sql")
+#     header = [
+#         "Authorization" => string("Basic ", base64encode("$(conn.user):$(conn.pass)")),
+#         "Accept" => "application/json",
+#         "NS" => conn.ns,
+#         "DB" => conn.db,
+#     ]
+#     HTTP.request("POST",ep,headers = header, body=query).body |> String |> JSON3.read
+# end

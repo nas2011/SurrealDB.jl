@@ -1,8 +1,16 @@
 begin
-    using HTTP, JSON3, DataFrames, Base64, UUIDs, Random
+    using HTTP, JSON3, DataFrames, Base64, UUIDs, Random, DBInterface, JSONTables
     using HTTP.WebSockets: send, receive
 end
 
+
+"""Implement DBInterface.execute. Does not return an explicit cursor, rather, returns rows at this time.
+***Note*** If your query return more than once, the default behavior is to return only the last return."""
+function DBInterface.execute(conn::SurrealConnection,sql::String)
+    res = query(conn,sql)
+    results = res.result[end].result
+    return jsontable(results)
+end
 
 function varstring(vars::Dict{String,String})
     join(["\"$k\" : \"$v\"" for (k,v) in pairs(vars)], ",\n")
@@ -74,3 +82,4 @@ function define(table::Table)
     $fields    
     """
 end
+

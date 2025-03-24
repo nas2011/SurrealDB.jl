@@ -1,3 +1,5 @@
+using DBInterface
+
 @kwdef struct SurrealConnection
     url::String = "ws://localhost:8000/rpc"
     user::String = "root"
@@ -17,6 +19,8 @@
         return new(url,user,pass,ns,db,type,connected,ws)
     )
 end
+
+DBInterface.connect(::Type{SurrealConnection},args...;kw...) = SurrealConnection(args...;kw...)
 
 
 mutable struct Field

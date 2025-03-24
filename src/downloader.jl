@@ -24,6 +24,7 @@ function installedVersion()
         semVerRE = r"((0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?)"
         curInstalled = match(semVerRE,verData).captures[1]
     catch
+        @warn "Could not find installed verison of SurrealDB. If you aren't on windows this function will not work."
         nothing
     end
 end
