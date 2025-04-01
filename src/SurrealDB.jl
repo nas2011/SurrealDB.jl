@@ -11,6 +11,7 @@ include("core.jl")
 include("websockets.jl")
 include("downloader.jl")
 include("startSurreal.jl")
+include("config.toml")
 
 function rawws(url,headers =[])
     headers = [
