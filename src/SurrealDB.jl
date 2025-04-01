@@ -28,7 +28,7 @@ function rawws(url,headers =[])
 end
 
 global surrealExeLoc = joinpath(pwd(),"surreal","surreal")
-global config = TOML.parsefile("config.toml")
+global config = TOML.parsefile("../config.toml")
 
 export 
     SurrealConnection,
