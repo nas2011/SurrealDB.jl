@@ -33,6 +33,7 @@ try
     global config = TOML.parsefile("config.toml")
 catch
     @warn "You don't have an active config file in the working directory."
+end
 
 export 
     SurrealConnection,
