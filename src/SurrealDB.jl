@@ -11,7 +11,7 @@ include("core.jl")
 include("websockets.jl")
 include("downloader.jl")
 include("startSurreal.jl")
-include("config.toml")
+
 
 function rawws(url,headers =[])
     headers = [
@@ -29,7 +29,10 @@ function rawws(url,headers =[])
 end
 
 global surrealExeLoc = joinpath(pwd(),"surreal","surreal")
-global config = TOML.parsefile("config.toml")
+try
+    global config = TOML.parsefile("config.toml")
+catch
+    @warn "You don't have an active config file in the working directory."
 
 export 
     SurrealConnection,
