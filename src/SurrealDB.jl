@@ -20,6 +20,14 @@ const SR_SURREAL_RPC_FREE = Ref{Ptr{Cvoid}}(C_NULL)
 const SR_FREE_BYTE_ARR = Ref{Ptr{Cvoid}}(C_NULL)
 const SR_FREE_STRING = Ref{Ptr{Cvoid}}(C_NULL)
 
+# Parked RPC pointers for file-backed embedded connections.
+# close() on an embedded connection stores the pointer here instead of calling
+# sr_surreal_rpc_free, because on Windows the OS LOCK file handle is not reliably
+# released before the ccall returns. The next connect() to the same URL reuses the
+# parked pointer, skipping the expensive open/close cycle entirely.
+# Call release!() to explicitly free and block until the lock is gone.
+const EMBEDDED_RPC_CACHE = Dict{String, Ptr{Cvoid}}()
+
 # Include modules
 include("loader.jl")
 include("cbor.jl")
@@ -28,7 +36,7 @@ include("transport.jl")
 
 # Exports
 export Surreal, SurrealOptions, RecordID, SurrealConnection
-export connect, close, use, query, create, select, update, merge, delete
+export connect, close, release!, use, query, create, select, update, merge, delete
 export toDataFrame, toDatabase, serve!
 
 """
@@ -219,38 +227,51 @@ function connect(url::String; options::SurrealOptions=SurrealOptions())
         if LIB_HANDLE[] == C_NULL
             error("Cannot connect in embedded mode: surrealdb_c dynamic library failed to load.")
         end
-        
+
+        # Reuse a parked RPC pointer for the same URL if available — avoids the
+        # Windows file lock race that occurs when freeing and immediately reopening.
+        if haskey(EMBEDDED_RPC_CACHE, url)
+            rpcPtr = pop!(EMBEDDED_RPC_CACHE, url)
+            transport = EmbeddedTransport(rpcPtr)
+            client = Surreal(url, transport, true)
+            finalizer(client) do c
+                close(c)
+            end
+            return client
+        end
+
         # Normalize in-memory endpoint to what SurrealDB expects
         endpoint = url == "mem://" ? "memory" : url
-        
+
         # Use cached FFI function pointers to initialize the datastore, retrying on temporary OS lock delays
         new_func = SR_SURREAL_RPC_NEW[]
         free_str = SR_FREE_STRING[]
-        
+
         status = -1
         surreal_ptr = Ref{Ptr{Cvoid}}(C_NULL)
-        retries = 5
-        
+        # 30 attempts × 0.2 s = 6 s total budget for lock acquisition after a release!() call.
+        retries = 30
+
         while retries > 0
             err_ptr = Ref{Ptr{Cchar}}(C_NULL)
             surreal_ptr = Ref{Ptr{Cvoid}}(C_NULL)
-            
+
             status = ccall(new_func, Cint,
                 (Ptr{Ptr{Cchar}}, Ptr{Ptr{Cvoid}}, Ptr{Cchar}, SurrealOptions),
                 err_ptr, surreal_ptr, endpoint, options)
-                
+
             if status >= 0
                 break
             end
-            
+
             # Connection failed, check if it's a lock file/sharing violation/resource unavailable error
             err_msg = err_ptr[] != C_NULL ? unsafe_string(err_ptr[]) : "Failed to initialize embedded SurrealDB instance"
-            
+
             # Free the Rust allocated string immediately
             if err_ptr[] != C_NULL
                 ccall(free_str, Cvoid, (Ptr{Cchar},), err_ptr[])
             end
-            
+
             if occursin("lock file", err_msg) || occursin("used by another process", err_msg) || occursin("Resource temporarily unavailable", err_msg) || occursin("lock", lowercase(err_msg))
                 sleep(0.2)
                 retries -= 1
@@ -262,15 +283,15 @@ function connect(url::String; options::SurrealOptions=SurrealOptions())
                 error(err_msg)
             end
         end
-        
+
         transport = EmbeddedTransport(surreal_ptr[])
         client = Surreal(url, transport, true)
-        
+
         # Register a finalizer to ensure database resources are closed on GC
         finalizer(client) do c
             close(c)
         end
-        
+
         return client
         
     elseif startswith(url, "ws://") || startswith(url, "wss://")
@@ -291,13 +312,43 @@ import Base: close
 """
     close(client::Surreal)
 
-Closes the database client session, releasing FFI pointers or socket connections.
+Marks the connection as closed. For file-backed embedded databases the native RPC
+context is parked rather than freed, so the next `connect()` to the same URL reuses
+it instantly without triggering the Windows file lock race. For in-memory and remote
+connections the underlying resource is released immediately.
+
+To forcibly free the RPC context and release the file lock (e.g. so another process
+can open the database), call `release!(client)` instead.
 """
 function close(client::Surreal)
     if client.isConnected
-        closeTransport(client.transport)
+        if client.transport isa EmbeddedTransport && client.url != "mem://"
+            # Park the RPC pointer. Calling sr_surreal_rpc_free here would trigger a
+            # race on Windows where the OS LOCK file handle is not released before the
+            # ccall returns, causing the very next connect() to fail.
+            EMBEDDED_RPC_CACHE[client.url] = client.transport.rpcPtr
+        else
+            closeTransport(client.transport)
+        end
         client.isConnected = false
     end
+    return nothing
+end
+
+"""
+    release!(client::Surreal)
+
+Forcibly frees the embedded database RPC context, blocking until the native runtime
+has shut down and the OS file lock is released. Use this when another process needs
+to open the same database file. The client must not be used after calling `release!`.
+"""
+function release!(client::Surreal)
+    if client.transport isa EmbeddedTransport
+        # Remove from cache if it was previously parked
+        delete!(EMBEDDED_RPC_CACHE, client.url)
+        closeTransport(client.transport)
+    end
+    client.isConnected = false
     return nothing
 end
 

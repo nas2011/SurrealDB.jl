@@ -93,13 +93,16 @@ end
 """
     closeTransport(transport::EmbeddedTransport)
 
-Frees the in-process database RPC context.
+Frees the in-process database RPC context. On Windows the OS file lock on the
+RocksDB/SurrealKV LOCK file may not be released until some time after the ccall
+returns, so we sleep briefly to allow kernel cleanup before returning.
 """
 function closeTransport(transport::EmbeddedTransport)
     lib_handle = SurrealDB.LIB_HANDLE[]
     if lib_handle != C_NULL && transport.rpcPtr != C_NULL
         func = SurrealDB.SR_SURREAL_RPC_FREE[]
         ccall(func, Cvoid, (Ptr{Cvoid},), transport.rpcPtr)
+        sleep(0.25)
     end
 end
 
