@@ -193,20 +193,29 @@ using DataFrames
 conn = DBInterface.connect(SurrealConnection, "mem://")
 use(conn.client, "production", "analytics")
 
-# 2. Execute a query directly
+# 2. Create some data
+DBInterface.execute(conn,"DEFINE TABLE IF NOT EXISTS person")
+DBInterface.execute(conn,
+"""
+create person:1 content {'name': 'Bob','age':45};
+create person:2 content {'name': 'Alice','age': 42}
+"""
+)
+
+# 3. Execute a query directly
 cursor = DBInterface.execute(conn, "SELECT * FROM person")
 df = DataFrame(cursor)
 
-# 3. Use positional parameter binds (e.g. ?)
+# 4. Use positional parameter binds (e.g. ?)
 cursor_pos = DBInterface.execute(conn, "SELECT * FROM person WHERE age > ?", 30)
 df_pos = DataFrame(cursor_pos)
 
-# 4. Use prepared statements
+# 5. Use prepared statements
 stmt = DBInterface.prepare(conn, "SELECT * FROM person WHERE name = ?")
 cursor_prep = DBInterface.execute(stmt, ["Alice"])
 df_prep = DataFrame(cursor_prep)
 
-# 5. Close connection
+# 6. Close connection
 DBInterface.close!(conn)
 ```
 
