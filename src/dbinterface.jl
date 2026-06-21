@@ -115,7 +115,7 @@ function DBInterface.execute(conn::SurrealConnection, sql::String, params...)
     stmt = DBInterface.prepare(conn, sql)
     if isempty(params)
         return DBInterface.execute(stmt)
-    elseif length(params) == 1 && (params[1] isa Dict || params[1] isa NamedTuple)
+    elseif length(params) == 1 && (params[1] isa Dict || params[1] isa NamedTuple || params[1] isa Vector)
         return DBInterface.execute(stmt, params[1])
     else
         return DBInterface.execute(stmt, collect(params))
